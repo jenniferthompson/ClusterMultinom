@@ -1,0 +1,126 @@
+---
+title: "Multinomial Regression with Clustering Using the Bootstrap"
+author: "Jennifer Thompson"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This example will use the `gapminder` data to demonstrate a multinomial logistic regression model using cluster bootstrapping to calculate estimates and variances and showing the resulting odds ratios and predicted probabilities.
+
+List of vignettes I'd like to include later:
+
+- how to get estimates for *all* levels of the outcome vs all others (vs sticking with one reference level)
+- using ClusterMultinom with multiple imputation
+
+## Data and Simple Model Fit
+
+A multinomial outcome has >2 unordered categories. This fits the criteria of Earth's continents, which are included in the [`gapminder`](https://cran.r-project.org/package=gapminder) data, along with characteristics of each country in a given year.
+
+```{r}
+library(gapminder)
+head(gapminder)
+```
+
+Let's say we want to look at the relationship between each continent and life expectancy, population and GDP. One option is to use `vglm()` from the [`VGAM`](https://cran.r-project.org/web/packages/VGAM/index.html) package, with `family = multinomial()`, to model the log odds of a data point being from a certain continent.[^1]
+
+We'll use `Africa` as our reference category, and since `Oceania` has relatively few records, for purposes of model stability we'll combine it with `Asia`. (This may or may not be the best approach, but we'll leave that to sociologists.)
+
+```{r fit_model_nocluster}
+library(VGAM, quietly = TRUE)
+
+## Combine Australia/NZ with Asia to help model stability
+gapminder$continent <- with(gapminder, {
+  ifelse(continent == "Oceania", "Asia", as.character(continent))
+})
+
+## Fit model with outcome = continent,
+##  exposures = life expectancy, population, GDP
+our_mod <- vglm(
+  continent ~ lifeExp + pop + gdpPercap,
+  data = gapminder,
+  family = multinomial(refLevel = "Africa")
+)
+
+## Print model summary
+summary(our_mod)
+
+```
+
+We get three sets of coefficients; each one describes the log odds of a data point being from Europe, Asia or the Americas vs Africa.
+
+
+## Accounting for Clustering
+
+But let's say we want to account for the fact that our data are clustered by year; for example, correlations between records from the same continent may vary over time, or correlations among the continents may vary over time.
+
+Here, we'll use the **bootstrap** to account for this clustering. A basic outline of the process:
+
+- Sample our clusters with replacement
+- Create a dataset with all records from each of our sampled clusters
+- Fit our multinomial model on this dataset and save the coefficients
+- Repeat this process B times
+
+We'll use the coefficients from all B models to get our point estimates and variance-covariance estimates that we'll use in estimating our model results.
+
+## Step 1: Create Our Datasets
+
+`ClusterMultinom::create_bootdata()` takes as arguments:
+
+1. An original dataset (multiple rows per cluster; `data.frame`)
+1. A single clustering variable name (column name in original dataset; `character`)
+1. A positive integer representing the number of bootstraps requested
+1. A seed (optional, to ensure reproducibility; `numeric`)
+
+It returns a **list** of length `nboot`, where each element is a cluster bootstrapped dataset.
+
+```{r create_gapminder_bootdata}
+library(ClusterMultinom)
+
+gap_bootdfs <- create_bootdata(
+  df = gapminder,
+  cluster_var = "year",
+  nboot = 10,
+  seed = 1234
+)
+
+length(gap_bootdfs)
+```
+
+## Step 2: Run the Model on Each Dataset
+
+`run_multinom_boot()` takes as required arguments
+
+- a model formula to be passed to `VGAM::vglm()`
+- a list of datasets (like the one created by `create_bootdata()`)
+
+and runs the same model on each dataset.
+
+To keep tabs on model convergence, `run_multinom_boot()` calls an internal function which preserves errors and warnings and keeps going until 
+
+(By default, `run_multinom_boot()` runs each model once, using the specified level as the reference outcome. As an additional argument, the user can specify `all_levels = TRUE`, which runs each model as many times as needed to get coefficients for *all* outcome comparisons. For example, in our `gapminder` data set, this would look like coefficients comparing all other continents to Africa, but also all other continents to the Americas, all other continents to Europe, and all other continents to Asia. Obviously, this takes longer to run, so the default is to run only one set of models using the specified reference level.)
+
+
+
+Great, now we have correct variance-covariance between all our coefficients! Now we can get the correct results.
+
+Everybody loves a p-value.
+
+    << this is where we have a function that gets p-values for a single/group of covariates >>
+    
+But p-values are imperfect and don't tell us anything about directionality or magnitude of effect.
+
+Let's look at odds ratios!
+
+    << this is where we have a function that gets odds ratios + CIs for a single covariate given a design matrix >>
+    << and we plot them >>
+
+But for continuous covariates like life expectancy, sometimes we want to plot the association over an entire range of the covariate, especially if we used something like restricted cubic splines, where the slope in our association isn't constant.
+
+    << this is where we have a function that gets predicted probabilities + CIs for a single covariate given a design matrix >>
+    << and we plot them >>
+
+[^1]: There are other options for multinomial regression in R, including `nnet::multinom()` and the `mlogit` package. We chose `VGAM::vglm()` because its warning messages were the most conservative and verbose, which is particularly helpful in the context of bootstrapping.

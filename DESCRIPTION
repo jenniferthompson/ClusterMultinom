@@ -1,0 +1,27 @@
+Package: ClusterMultinom
+Type: Package
+Title: Clustered Multinomial Logistic Regression
+Version: 0.1.0
+Author: c( person("Jennifer", "Thompson", email = "thompson.jennifer@gmail.com",
+    role = c("aut", "cre")), person("Rameela", "Chandrasekhar", email =
+    "rameela.chandrasekhar@vanderbilt.edu", role = c("aut")) )
+Maintainer: Jennifer Thompson <thompson.jennifer@gmail.com>
+Description: A suite of functions for extracting results from multinomial
+    logistic regression models when data is clustered (eg, by subject). Models
+    can be fit using sandwich estimation or the bootstrap, and can use complete
+    case analysis or multiple imputation. Results can include odds ratios and
+    confidence limits; predicted probabilities and confidence limits; and
+    p-values for individual variables or groups of variables.
+License: MIT
+Depends:
+    R (>= 3.3.2)
+Imports: 
+Suggests:
+    VGAM,
+    testthat,
+    gapminder,
+    purrr
+Encoding: UTF-8
+VignetteBuilder: knitr
+LazyData: true
+RoxygenNote: 5.0.1
