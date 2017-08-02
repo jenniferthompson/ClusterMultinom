@@ -15,12 +15,13 @@ Description: A suite of functions for extracting results from multinomial
 License: MIT
 Depends:
     R (>= 3.3.2)
-Imports: 
+Imports:
+    purrr
 Suggests:
     VGAM,
     testthat,
     gapminder,
-    purrr
+    mice
 Encoding: UTF-8
 VignetteBuilder: knitr
 LazyData: true

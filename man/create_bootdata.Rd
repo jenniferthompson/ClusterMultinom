@@ -2,9 +2,9 @@
 % Please edit documentation in R/create_bootdata.R
 \name{create_bootdata}
 \alias{create_bootdata}
-\title{Create list of bootstrapped datasets using a cluster variable}
+\title{Create list of cluster bootstrapped datasets}
 \usage{
-create_bootdata(df, cluster_var, nboot, seed = NULL)
+create_bootdata(df, cluster_var, nboot, seed = NULL, impute = FALSE, ...)
 }
 \arguments{
 \item{df}{data.frame in "long" format.}
@@ -15,16 +15,26 @@ create_bootdata(df, cluster_var, nboot, seed = NULL)
 integer.}
 
 \item{seed}{numeric; if specified, sets seed for reproducibility.}
+
+\item{impute}{logical; whether to use \code{mice} to impute each bootstrapped
+dataset.}
+
+\item{...}{Additional arguments to pass to \code{mice} if desired. See
+\code{\link[mice]{mice}} for default settings and additional information.}
 }
 \value{
-A list of length \code{nboot}, where each element is a
+A list of length \code{nboot}, where each element is either 1) a
   \code{data.frame} including all records from each sampled value of
-  \code{df$cluster_var}.
+  \code{df$cluster_var}, or 2) a \code{mice} object based on one of the
+  bootstrapped datasets.
 }
 \description{
-Based on an original dataset which includes a clustering variable, creates a
-list of \code{nboot} datasets with the cluster variable sampled with
-replacement.
+Based on an original dataset which includes a clustering variable, this
+function creates a list of \code{nboot} bootstrapped datasets with the
+cluster variable (as opposed to rows) sampled with replacement. If using
+complete case analysis, the function returns that list; if using multiple
+imputation, the function returns a list of \code{nboot} \code{mice::mids}
+objects based on each of those bootstrapped datasets.
 }
 \examples{
 
@@ -34,7 +44,33 @@ my_df <- data.frame(
   y = rbinom(n = 500, size = 1, prob = 0.2)
 )
 
+## Without imputation:
 create_bootdata(df = my_df, cluster_var = "id", nboot = 25)
 
+## To demo imputation, make some data 10\% MCAR
+my_df_mcar <- my_df
+my_df_mcar$x[sample(1:500, size = 50)] <- NA
+my_df_mcar$y[sample(1:500, size = 50)] <- NA
+
+## Use default arguments to mice()
+create_bootdata(
+  df = my_df_mcar,
+  cluster_var = "id",
+  nboot = 25,
+  impute = TRUE
+)
+
+## Supply arguments to mice()
+create_bootdata(
+  df = my_df_mcar,
+  cluster_var = "id",
+  nboot = 25,
+  impute = TRUE,
+  m = 10,
+  method = "mean"
+)
+}
+\seealso{
+\link[mice]{mice}
 }
 

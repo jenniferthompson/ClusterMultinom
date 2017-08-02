@@ -1,6 +1,5 @@
 ---
-title: "The ClusterMultinom Package"
-author: "Jennifer Thompson"
+title: "ClusterMultinom"
 output: github_document
 ---
 
@@ -12,35 +11,41 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Purpose
 
-`ClusterMultinom` provides a suite of functions to make the process of fitting
-multinomial logistic regression models with clustered data, and extracting meaningful results from those models, as painless as possible.
+ClusterMultinom provides a suite of functions to make the process of fitting
+multinomial logistic regression models with clustered data, as well as extracting and visualizing meaningful results from those models, as painless as possible.
 
 ## Current Capabilities
 
-Currently, this package assumes your multinomial logistic regression model
-is fit using `VGAM::vglm(..., family = multinomial(...))`, and that you want to
-calculate variance of beta coefficients using the bootstrap.
+The package assumes your multinomial logistic regression model will be fit using `VGAM::vglm(..., family = multinomial(...))`, and that you want to
+calculate variance of beta coefficients using the bootstrap. It also allows for multiple imputation, using the [`mice`](https://CRAN.R-project.org/package=mice) package and following the "boot MI" procedure recommended by [Schomaker & Heumann](https://arxiv.org/abs/1602.07933).
 
-The functions included mirror the following steps in the process:
+The functions included mirror the following steps:
 
-1. Create datasets to fit these multinomial models using the cluster bootstrap.
-2. Fit the same model to each bootstrapped dataset, saving errors/warnings of failed model fits and saving coefficients of successful model fits.
-3. Create a vector of point estimates, and a corresponding variance-covariance matrix, for all model coefficients.
-4. Calculate p-values for individual coefficients or for groups of coefficients.
-5. Calculate odds ratios and confidence limits for a coefficient.
-6. Calculate predicted probabilities and confidence limits for each outcome level, given a matrix of **X** values.
+1. `create_bootdata()`: Create `B` datasets.
+    * Optional: Multiply impute each dataset `M` times.
+    * **NOTE: FUNCTIONALITY CURRENTLY ENDS HERE**
+1. Fit the same model to each bootstrapped dataset (or set of imputations), saving errors/warnings of failed model fits and saving coefficients of successful model fits.
+1. Create a vector of point estimates, and a corresponding variance-covariance matrix, for all model coefficients.
+1. Hypothesis testing for individual coefficients or for groups of coefficients.
+1. Calculate odds ratios and confidence limits for a coefficient.
+1. Calculate predicted probabilities and confidence limits for each outcome level, given a matrix of **X** values.
+
+The functions are written and exported so that the user can access each step of
+the process independently if needed; however, wrappers are also provided to perform common tasks which fall completely within the context of the package.
 
 ## Dependencies
 
-Currently, all package dependencies are `Suggested`.
+Currently, `purrr` is **Imported** and all other package dependencies are **Suggested**. Those suggested packages include, in order of importance:
 
-1. `VGAM`: We chose `VGAM::vglm()` for our multinomial logistic regression fits because it produces the most conservative warning messages of the options we tried, which are important when fitting a potentially unstable model to many bootstrapped datasets. Therefore, the only methods available for some functions are for `vglm` objects. PRs to add methods for `mlogit` or `nnet::multinom()` model fits are welcome.
-1. `purrr`: Compared to the best base R approaches I could write, `purrr` gets the same results faster and requires less code. PRs to write the package more flexibly, so that users could use this package whether or not they choose to install `purrr`, are welcome.
-1. `gapminder`: Required only to run examples.
-1. `testthat`: For testing only.
+1. [`VGAM`](https://cran.r-project.org/package=VGAM): We chose `VGAM::vglm()` for our multinomial logistic regression fits because it produces the most conservative warning messages of the options we tried, which are important when fitting a potentially unstable model to many bootstrapped datasets.
+1. [`mice`](https://cran.r-project.org/package=mice): `mice` is a popular package for multiple imputation, providing plenty of opportunity for customization and modeling.
+1. [`gapminder`](https://cran.r-project.org/package=gapminder): Required only to run examples.
+1. [`testthat`](https://cran.r-project.org/package=testthat): Required only for testing.
 
-## Future Directions
+## Future Directions/Collaboration Opportunities
 
 1. Including sandwich estimation in addition to bootstrap methods to calculate coefficient variances.
 1. Adding flexibility such that `purrr` need not be installed to use this package.
 1. Adding methods for `mlogit` or `nnet::multinom()` model fits, in addition to `VGAM::vglm()`.
+
+Please note that this project is released with a [Contributor Code of Conduct](CONDUCT.md). By participating in this project you agree to abide by its terms.

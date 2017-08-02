@@ -1,20 +1,30 @@
-#' Create list of bootstrapped datasets using a cluster variable
+#' Create list of cluster bootstrapped datasets
 #'
-#' Based on an original dataset which includes a clustering variable, creates a
-#' list of \code{nboot} datasets with the cluster variable sampled with
-#' replacement.
+#' Based on an original dataset which includes a clustering variable, this
+#' function creates a list of \code{nboot} bootstrapped datasets with the
+#' cluster variable (as opposed to rows) sampled with replacement. If using
+#' complete case analysis, the function returns that list; if using multiple
+#' imputation, the function returns a list of \code{nboot} \code{mice::mids}
+#' objects based on each of those bootstrapped datasets.
 #'
 #' @param df data.frame in "long" format.
 #' @param cluster_var character; matches one column name in \code{df}.
 #' @param nboot numeric; specifies how many datasets to create. Coerced to
 #'   integer.
 #' @param seed numeric; if specified, sets seed for reproducibility.
+#' @param impute logical; whether to use \code{mice} to impute each bootstrapped
+#'   dataset.
+#' @param ... Additional arguments to pass to \code{mice} if desired. See
+#' \code{\link[mice]{mice}} for default settings and additional information.
+#'
+#' @seealso \link[mice]{mice}
 #'
 #' @export
 #'
-#' @return A list of length \code{nboot}, where each element is a
+#' @return A list of length \code{nboot}, where each element is either 1) a
 #'   \code{data.frame} including all records from each sampled value of
-#'   \code{df$cluster_var}.
+#'   \code{df$cluster_var}, or 2) a \code{mice} object based on one of the
+#'   bootstrapped datasets.
 #'
 #' @examples
 #'
@@ -24,13 +34,38 @@
 #'   y = rbinom(n = 500, size = 1, prob = 0.2)
 #' )
 #'
+#' ## Without imputation:
 #' create_bootdata(df = my_df, cluster_var = "id", nboot = 25)
 #'
+#' ## To demo imputation, make some data 10% MCAR
+#' my_df_mcar <- my_df
+#' my_df_mcar$x[sample(1:500, size = 50)] <- NA
+#' my_df_mcar$y[sample(1:500, size = 50)] <- NA
+#'
+#' ## Use default arguments to mice()
+#' create_bootdata(
+#'   df = my_df_mcar,
+#'   cluster_var = "id",
+#'   nboot = 25,
+#'   impute = TRUE
+#' )
+#'
+#' ## Supply arguments to mice()
+#' create_bootdata(
+#'   df = my_df_mcar,
+#'   cluster_var = "id",
+#'   nboot = 25,
+#'   impute = TRUE,
+#'   m = 10,
+#'   method = "mean"
+#' )
 
 create_bootdata <- function(df,
                             cluster_var,
                             nboot,
-                            seed = NULL){
+                            seed = NULL,
+                            impute = FALSE,
+                            ...){
 
   ## -- Make sure arguments are as expected ------------------------------------
   if(!inherits(df, "data.frame")){
@@ -76,5 +111,26 @@ create_bootdata <- function(df,
   df_list <- purrr::map(cluster_samples,
                         ~ purrr::map_df(., ~ df[df[,cluster_var] == .,]))
 
-  return(df_list)
+  ## -- If imputation is specified: --------------------------------------------
+  ## For each element of df_list, run mice(), using any user-supplied arguments
+  ## Return list of mids objects (length = nboot)
+  if(impute){
+    if(requireNamespace("mice", quietly = TRUE)){
+
+      df_list_imp <- purrr::map(df_list, ~ mice(., ...))
+
+      return(df_list_imp)
+
+    } else{
+      stop(
+        "You must have the mice package installed in order to use multiple imputation.",
+        call. = FALSE
+      )
+    }
+
+  ## -- If no imputation specified, return original list of bootstrapped dfs ---
+  } else{
+    return(df_list)
+  }
+
 }

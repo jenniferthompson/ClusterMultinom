@@ -92,16 +92,34 @@ length(gap_bootdfs)
 
 ## Step 2: Run the Model on Each Dataset
 
-`run_multinom_boot()` takes as required arguments
+`ClusterMultinom::run_multinom_boot()` takes as required arguments:
 
-- a model formula to be passed to `VGAM::vglm()`
-- a list of datasets (like the one created by `create_bootdata()`)
+1. A model formula
+1. Which level of the outcome to use as a reference
+1. A list of datasets, all with the same column names *(eg, one created by `ClusterMultinom::create_bootdata()`)*
 
-and runs the same model on each dataset.
+It also takes as optional arguments:
 
-To keep tabs on model convergence, `run_multinom_boot()` calls an internal function which preserves errors and warnings and keeps going until 
+1. The original dataset, of the same format as each element of your list of bootstrapped datasets.
 
-(By default, `run_multinom_boot()` runs each model once, using the specified level as the reference outcome. As an additional argument, the user can specify `all_levels = TRUE`, which runs each model as many times as needed to get coefficients for *all* outcome comparisons. For example, in our `gapminder` data set, this would look like coefficients comparing all other continents to Africa, but also all other continents to the Americas, all other continents to Europe, and all other continents to Asia. Obviously, this takes longer to run, so the default is to run only one set of models using the specified reference level.)
+    *If not specified, the function uses the first element of the list.*
+    
+1. The number of successful model fits required.
+
+    Depending on the distribution of the outcome and the complexity of the model, some bootstrap datasets may not produce a model fit that converges. We recommend creating some "extra" datasets in Step 1, and having `run_multinom_boot()` run until you have achieved B successful model fits. (One of the reasons we chose `VGAM::vglm()` to use first was its conservative warnings.)
+
+    *If not specified, the function uses 85% of the length of the list of datasets.*
+
+```{r run_gapminder_models}
+
+
+# continent ~ lifeExp + pop + gdpPercap
+
+
+```
+
+
+
 
 
 
