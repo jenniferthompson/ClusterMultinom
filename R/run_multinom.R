@@ -12,9 +12,10 @@
 #'   \code{\link[stats]{formula}} for more details.
 #' @param ref_level numeric (representing factor level) or character; level of
 #'   outcome variable to use as reference.
-#' @param coef_only logical; whether to return entire model object or only model
-#'   coefficients (recommended to save space; in the context of bootstrapping,
-#'   coefficients are often the only required information). Defaults to TRUE.
+#' @param coef_only logical; whether to return only model coefficients
+#'   (recommended to save memory; in the context of bootstrapping, coefficients
+#'   are often the only required information) or entire model object. Defaults
+#'   to TRUE.
 #' @param coef_matrix logical; whether to return a matrix of all coefficient
 #'   estimates from each imputation in a \code{mids} object, in addition to the
 #'   averages for each coefficient. Defaults to FALSE.
@@ -71,7 +72,7 @@
 #'
 
 run_multinom <- function(df, formula, ref_level, coef_only, ...){
-  UseMethod("run_multinom")
+  UseMethod("run_multinom", df)
 }
 
 #' describeIn run_multinom Method for data.frames
