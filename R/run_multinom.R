@@ -8,8 +8,8 @@
 #' returned instead.
 #'
 #' @param df \code{data.frame} or \code{mice::mids} object on which to run model.
-#' @param formula character string that can be coerced to \code{formula}; see
-#'   \code{\link[stats]{formula}} for more details.
+#' @param formula \code{formula}; see \code{\link[stats]{formula}} for more
+#'   details.
 #' @param ref_level numeric (representing factor level) or character; level of
 #'   outcome variable to use as reference.
 #' @param coef_only logical; whether to return only model coefficients
@@ -58,14 +58,14 @@
 #' )
 #'
 #' ## Basic usage
-#' run_multinom(df = my_df, formula = "y ~ x1 + x2", ref_level = "A")
+#' run_multinom(df = my_df, formula = y ~ x1 + x2, ref_level = "A")
 #'
 #' ## Handle missingness with multiple imputation using mice
 #' ## Also try a more complicated formula that might fail to converge
 #' my_df_mice <- mice(my_df)
 #' run_multinom(
 #'   df = my_df_mice,
-#'   formula = "y ~ rcs(x1, 5) * rcs(x2, 5)",
+#'   formula = y ~ rcs(x1, 5) * rcs(x2, 5),
 #'   ref_level = "A",
 #'   coef_matrix = TRUE
 #' )
@@ -84,8 +84,8 @@ run_multinom.default <- function(df,
                                  ref_level,
                                  coef_only = TRUE){
 
-  if(!inherits(formula, "character")){
-    stop("formula must be a character string", call. = FALSE)
+  if(!inherits(formula, "formula")){
+    stop("formula must be able to be coerced to a formula", call. = FALSE)
   }
 
   if(!inherits(df, "data.frame")){
@@ -93,11 +93,12 @@ run_multinom.default <- function(df,
   }
 
   ## Fit multinomial model using specified formula, reference level
-  modobj <- with(df, {
-    do.call(try.vglm,
-            list(formula = as.formula(formula),
-                 family = multinomial(refLevel = ref_level)))
-  })
+  ## eval_formula_with is internal function; mice's "with(mids, ...)" syntax
+  ##   breaks if formula is passed as a formula (vs character string)
+  modobj <- do.call(eval_formula_with,
+                    list(df = df,
+                         formula = formula,
+                         family = multinomial(refLevel = ref_level)))
 
   ## Initialize 1) vector of coefficients, 2) vector of errors/warnings
   modcoefs <- modmsgs <- NULL
@@ -136,8 +137,8 @@ run_multinom.mids <- function(df,
                               coef_matrix = FALSE,
                               fail_pct = 0.8){
 
-  if(!inherits(formula, "character")){
-    stop("formula must be a character string", call. = FALSE)
+  if(!inherits(formula, "formula")){
+    stop("formula must be able to be coerced to a formula", call. = FALSE)
   }
 
   if(!(fail_pct >= 0 & fail_pct <= 1)){
@@ -145,11 +146,12 @@ run_multinom.mids <- function(df,
   }
 
   ## Fit multinomial model using specified formula, reference level
-  modobj <- with(df, {
-    do.call(try.vglm,
-            list(formula = as.formula(formula),
-                 family = multinomial(refLevel = ref_level)))
-  })
+  ## eval_formula_with is internal function; mice's "with(mids, ...)" syntax
+  ##   breaks if formula is passed as a formula (vs character string)
+  modobj <- do.call(eval_formula_with,
+                    list(data = df,
+                         formula = formula,
+                         family = multinomial(refLevel = ref_level)))
 
   ## How many of the imputed models successfully converged?
   ## modconverge = vector of indicators
