@@ -8,19 +8,6 @@ sample_clusters <- function(use_seed, use_clusters){
   sample(use_clusters, size = length(use_clusters), replace = TRUE)
 }
 
-#' Silently catch errors for \code{vglm()} calls
-#'
-#' @param ... Arguments to be passed to \code{VGAM::vglm()}.
-#'
-
-try.vglm <- function(...){
-  ## Turn all warning messages into errors; reset upon exit
-  op <- options(warn = 2)
-  on.exit(options(op))
-  ## Fit vglm() without warnings
-  try(vglm(..., silent = TRUE))
-}
-
 #' Extract coefficients from an S4 model object that may be of class try-error
 #'
 #' @param x either S4 model object or object of type try-error
@@ -32,4 +19,19 @@ extract_coefs_s4 <- function(x, ncoefs){
   } else{
     x@coefficients
   }
+}
+
+#' Wrapper to allow formula object to be passed to with([mids object], vglm(...))
+#'
+#' Passing a formula object to a with(mids object, ...) call breaks.
+#' eval(substitute()) makes it work.
+#'
+#' @param data Object on which you can fit a model of type \code{fitter}. Most
+#'   cases, a \code{data.frame} or \code{mids} object.
+#' @param f \code{formula}; see \code{\link[stats]{formula}} for more details.
+#' @param fitter Modeling function. In this package, defaults to
+#'   \code{\link{try.vglm}}.
+#'
+eval_formula_with <- function(data, formula, fitter = try_vglm, ...) {
+  eval(substitute(with(data, fitter(f, ...))))
 }
