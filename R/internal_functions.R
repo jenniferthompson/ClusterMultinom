@@ -30,8 +30,7 @@ extract_coefs_s4 <- function(x, ncoefs){
 #'   cases, a \code{data.frame} or \code{mids} object.
 #' @param formula \code{formula}; see \code{\link[stats]{formula}} for more
 #'   details.
-#' @param fitter Modeling function. In this package, defaults to
-#'   \code{\link{try.vglm}}.
+#' @param fitter Modeling function. Defaults to \code{\link{try_vglm}}.
 #'
 eval_formula_with <- function(data, formula, fitter = try_vglm, ...) {
   eval(substitute(with(data, fitter(formula, ...))))

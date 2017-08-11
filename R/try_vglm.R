@@ -1,4 +1,4 @@
-#' Silently catch errors for \code{vglm()} calls
+#' Silently catch errors for \code{VGAM::vglm()} calls
 #'
 #' @param ... Arguments to be passed to \code{VGAM::vglm()}.
 #'

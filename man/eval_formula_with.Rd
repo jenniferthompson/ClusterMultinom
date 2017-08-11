@@ -13,8 +13,7 @@ cases, a \code{data.frame} or \code{mids} object.}
 \item{formula}{\code{formula}; see \code{\link[stats]{formula}} for more
 details.}
 
-\item{fitter}{Modeling function. In this package, defaults to
-\code{\link{try.vglm}}.}
+\item{fitter}{Modeling function. Defaults to \code{\link{try_vglm}}.}
 }
 \description{
 Passing a formula object to a with(mids object, ...) call breaks.

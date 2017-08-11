@@ -2,7 +2,7 @@
 % Please edit documentation in R/try_vglm.R
 \name{try_vglm}
 \alias{try_vglm}
-\title{Silently catch errors for \code{vglm()} calls}
+\title{Silently catch errors for \code{VGAM::vglm()} calls}
 \usage{
 try_vglm(...)
 }
@@ -10,6 +10,6 @@ try_vglm(...)
 \item{...}{Arguments to be passed to \code{VGAM::vglm()}.}
 }
 \description{
-Silently catch errors for \code{vglm()} calls
+Silently catch errors for \code{VGAM::vglm()} calls
 }
 
