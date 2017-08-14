@@ -32,8 +32,8 @@
 #' )
 #'
 #' ## Works whether df is a data.frame or mice() object
-#' fit_multinom(my_df, y ~ x1 + x2, ref_level = "A")
-#' fit_multinom(mice::mice(my_df), y ~ x1 + x2, ref_level = "A")
+#' fit_multinom(y ~ x1 + x2, my_df, ref_level = "A")
+#' fit_multinom(y ~ x1 + x2, mice::mice(my_df), ref_level = "A")
 
 fit_multinom <- function(formula, df, ref_level, fitter = try_vglm){
 
@@ -103,15 +103,15 @@ fit_multinom <- function(formula, df, ref_level, fitter = try_vglm){
 #' )
 #'
 #' ## Basic usage
-#' my_mod <- fit_multinom(df = my_df, formula = y ~ x1 + x2, ref_level = "A")
+#' my_mod <- fit_multinom(formula = y ~ x1 + x2, df = my_df, ref_level = "A")
 #' extract_multinom_info(my_mod)
 #'
 #' ## Handle missingness with multiple imputation using mice
 #' ## Also try a more complicated formula that might fail to converge
 #' my_df_mice <- mice(my_df)
 #' my_mod_mice <- fit_multinom(
-#'   df = my_df_mice,
 #'   formula = y ~ rcs(x1, 5) * rcs(x2, 5),
+#'   df = my_df_mice,
 #'   ref_level = "A"
 #' )
 #'
@@ -232,11 +232,79 @@ extract_multinom_info.mira <- function(modobj,
 
 }
 
-# ## We want a wrapper for these; this isn't working due to our favorite error
-# fit_and_extract <- function(formula, df, ref_level, ...){
-#   mod <- fit_multinom(formula, df, ref_level)
-#   modinfo <- extract_multinom_info(mod)
-#   modinfo
-# }
-#
-# fit_and_extract(y ~ x1 + x2, my_df, ref_level = "A")
+#' Fit multinomial model and extract summary info on a single data object
+#'
+#' This is a wrapper for \code{fit_multinom()} + \code{extract_multinom_info};
+#' it fits a model and extracts summary information (indicator for successful
+#' fit, vector of coefficients, and character vector of errors/warnings) given
+#' a formula, a single data object (\code{data.frame} or \code{mice::mids}
+#' object), and a reference level for the outcome.
+#'
+#' @export
+#'
+#' @seealso \code{\link{fit_multinom}}, \code{\link{extract_multinom_info}}.
+#'   \code{\link[VGAM]{vglm}}; \code{\link[VGAM]{multinomial}} for model
+#'   fitting. \code{\link[mice]{mice}} for imputation.
+#'
+#' @return List containing the following elements:
+#' \itemize{
+#'   \item \code{fitsucc}: logical indicating whether the model was successfully fit,
+#'     with no warnings/errors
+#'   \item\code{coefs}: numeric vector of model coefficients (NULL if
+#'     \code{fitsucc} = FALSE)
+#'    \item\code{msgs}: character vector of warnings/error messages (NULL if
+#'     \code{fitsucc} = TRUE)
+#'    \item\code{modobj}: full model object of class \code{VGAM::vglm()}. Only
+#'     returned if requested (\code{coef_only} = FALSE).
+#' }
+#'
+#' If \code{df} is a \code{mice::mids} object, the following elements are also
+#'   returned:
+#' \itemize{
+#'   \item \code{nfailsucc}: numeric vector; number of successful and failed model
+#'   fits among imputations
+#'   \item \code{impcoefs} (if \code{coef_matrix = TRUE}): MxP matrix of
+#'     coefficients from each individual imputation
+#' }
+#'
+#' @examples
+#'
+#' my_df <- data.frame(
+#'   id = sample(1:50, size = 500, replace = TRUE),
+#'   x1 = sample(c(NA, 1:100), size = 500, replace = TRUE),
+#'   x2 = sample(c(NA, 1:100), size = 500, replace = TRUE),
+#'   y = sample(c(NA, LETTERS[1:3]), size = 500, replace = TRUE)
+#' )
+#'
+#' ## Basic usage
+#' my_mod_info <- fit_extract_multinom(
+#'   formula = y ~ x1 + x2,
+#'   df = my_df,
+#'   ref_level = "A"
+#' )
+#'
+#' ## Handle missingness with multiple imputation using mice
+#' ## Also try a more complicated formula that might fail to converge
+#' my_df_mice <- mice(my_df[1:125,])
+#' my_mod_info_mice <- fit_extract_multinom(
+#'   formula = y ~ rcs(x1, 5) * rcs(x2, 5),
+#'   df = my_df_mice,
+#'   ref_level = "A",
+#'   coef_matrix = TRUE
+#' )
+#'
+fit_extract_multinom <- function(formula, df, ref_level, ...){
+  if(!inherits(formula, "formula")){
+    stop("formula must be a formula object.", call. = FALSE)
+  }
+
+  ## Can't pass directly as formula object though... environments :disappointed:
+  ## Hack a solution
+  mod <- fit_multinom(
+    as.formula(paste(as.character(formula)[c(2, 1, 3)], collapse = " ")),
+    df,
+    ref_level
+  )
+  modinfo <- extract_multinom_info(mod, ...)
+  modinfo
+}

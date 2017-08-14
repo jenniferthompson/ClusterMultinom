@@ -39,8 +39,8 @@ my_df <- data.frame(
 )
 
 ## Works whether df is a data.frame or mice() object
-fit_multinom(my_df, y ~ x1 + x2, ref_level = "A")
-fit_multinom(mice::mice(my_df), y ~ x1 + x2, ref_level = "A")
+fit_multinom(y ~ x1 + x2, my_df, ref_level = "A")
+fit_multinom(y ~ x1 + x2, mice::mice(my_df), ref_level = "A")
 }
 \seealso{
 \code{\link[VGAM]{vglm}}; \code{\link[VGAM]{multinomial}} for model
