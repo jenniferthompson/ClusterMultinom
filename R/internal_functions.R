@@ -35,3 +35,39 @@ extract_coefs_s4 <- function(x, ncoefs){
 eval_formula_with <- function(data, formula, fitter = try_vglm, ...) {
   eval(substitute(with(data, fitter(formula, ...))))
 }
+
+#' Reformat a vector of strings (eg, coefficient names from VGAM::vglm()) to
+#' conform with tibble naming conventions
+#'
+#' Conventions:
+#'
+#' - Coefficients for each outcome level designated by \code{_x}, where \code{x}
+#' indicates the outcome level (eg, \code{x1_1, x1_2})
+#' - Intercept terms designated by \code{_by_} (replaces \code{":"})
+#' - Nonlinear terms designated by \code{"."} (eg, \code{x1_1, x1._1})
+#'
+#' @param vnames character vector
+#'
+
+reformat_vnames <- function(vnames){
+  if(!inherits(vnames, "character")){
+    stop("vnames must be a character vector.", call. = FALSE)
+  }
+
+  ## Step 1: substitute outcome level indicator : with _
+  vnames_step1 <- gsub(":(?=[0-9]+$)|", "_", vnames, perl = TRUE)
+
+  ## Step 2: substitute interaction : with "_by_"
+  vnames_step2 <- gsub(":", "_by_", vnames_step1)
+
+  ## Step 3: Replace "(Intercept)" with "intercept"
+  vnames_step3 <- gsub("^\\(Intercept\\)", "intercept", vnames_step2)
+
+  ## Step 4: strip "xxx(____)"
+  vnames_step4 <- gsub("^[a-z]+\\(.*\\)", "", vnames_step3)
+
+  ## Step 5: replace "'" with "."
+  vnames_step5 <- gsub("'", ".", vnames_step4)
+
+  vnames_step5
+}

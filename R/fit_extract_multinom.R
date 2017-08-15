@@ -141,6 +141,10 @@ extract_multinom_info.default <- function(modobj, coef_only = TRUE){
   } else{
     coefs <- modobj@coefficients %>%
       t() %>% tibble::as_tibble()
+
+    ## Reformat names for easier data management
+    names(coefs) <- reformat_vnames(names(coefs))
+
     msgs <- NULL
   }
 
@@ -204,9 +208,15 @@ extract_multinom_info.mira <- function(modobj,
               map(modobj$analyses, extract_coefs_s4, ncoefs = ncoefs)) %>%
       tibble::as_tibble()
 
+    ## Reformat names for easier data management
+    names(impcoefs) <- reformat_vnames(names(impcoefs))
+
     ## Final coefficients = average of all imputations
     coefs <- colMeans(impcoefs, na.rm = TRUE) %>%
       t() %>% tibble::as_tibble()
+
+    ## Reformat names for easier data management
+    names(coefs) <- reformat_vnames(names(coefs))
   }
 
   ## Get a list of all errors/warnings from model fits
