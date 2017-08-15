@@ -139,7 +139,8 @@ extract_multinom_info.default <- function(modobj, coef_only = TRUE){
 
   ## If model was fit successfully, extract vector of coefficients
   } else{
-    coefs <- modobj@coefficients
+    coefs <- modobj@coefficients %>%
+      t() %>% tibble::as_tibble()
     msgs <- NULL
   }
 
@@ -198,11 +199,14 @@ extract_multinom_info.mira <- function(modobj,
     ## For each imputation, return either vector of NAs if model had errors/
     ##   warnings, or named vector of coefficients if it was fit successfully
     ## (extract_coefs_s4 is an internal function)
-    impcoefs <- do.call(rbind,
-                        map(modobj$analyses, extract_coefs_s4, ncoefs = ncoefs))
+    impcoefs <-
+      do.call(rbind,
+              map(modobj$analyses, extract_coefs_s4, ncoefs = ncoefs)) %>%
+      tibble::as_tibble()
 
     ## Final coefficients = average of all imputations
-    coefs <- colMeans(impcoefs, na.rm = TRUE)
+    coefs <- colMeans(impcoefs, na.rm = TRUE) %>%
+      t() %>% tibble::as_tibble()
   }
 
   ## Get a list of all errors/warnings from model fits
