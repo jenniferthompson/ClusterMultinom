@@ -55,19 +55,21 @@ reformat_vnames <- function(vnames){
   }
 
   ## Step 1: substitute outcome level indicator : with _
-  vnames_step1 <- gsub(":(?=[0-9]+$)|", "_", vnames, perl = TRUE)
+  vnames_step1 <- gsub(":(?=[0-9]+$)", "_", vnames, perl = TRUE)
 
-  ## Step 2: substitute interaction : with "_by_"
-  vnames_step2 <- gsub(":", "_by_", vnames_step1)
+  ## Step 2: Replace "(Intercept)" with "intercept"
+  vnames_step2 <- gsub("^\\(Intercept\\)", "intercept", vnames_step1)
 
-  ## Step 3: Replace "(Intercept)" with "intercept"
-  vnames_step3 <- gsub("^\\(Intercept\\)", "intercept", vnames_step2)
+  ## Step 3: strip "xxx(____)" and substitute interaction : with _by_
+  vnames_step3 <- purrr::map_chr(
+    vnames_step2,
+    ~ purrr::map(strsplit(., ":")[[1]],
+                 ~ gsub("^[a-z]+\\([^)]+\\)", "", .)) %>%
+      paste(collapse = "_by_")
+  )
 
-  ## Step 4: strip "xxx(____)"
-  vnames_step4 <- gsub("^[a-z]+\\(.*\\)", "", vnames_step3)
+  ## Step 4: replace "'" with "."
+  vnames_step4 <- gsub("'", ".", vnames_step3, fixed = TRUE)
 
-  ## Step 5: replace "'" with "."
-  vnames_step5 <- gsub("'", ".", vnames_step4)
-
-  vnames_step5
+  vnames_step4
 }
