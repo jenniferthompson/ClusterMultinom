@@ -2,7 +2,7 @@
 #'
 #' This function calls \code{fit_extract_multinom()} (which calls
 #' \code{fit_multinom()} + \code{extract_multinom_info}) on a list of data
-#' objects (\code{data.frame} or \code{\link[mice]{mice}}) and summarizes the
+#' objects (\code{data.frame} or \code{\link[mice]{mice}}), then summarizes the
 #' results of each.
 #'
 #' @export
@@ -30,14 +30,13 @@
 #'   \item\code{fitsucc}: numeric vector including number of model fit Successes,
 #'     Failures, and (if applicable) Imputation Successes/Failures
 #'   \item\code{coefs}: tibble with one row per element of \code{df_list} and one
-#'     column per model coefficient (plus element indicator); coefficients = NA
-#'     for unsuccessful model fits
+#'     column per model coefficient (no rows for unsuccessful model fits)
 #'   \item\code{impcoefs}, if requested: tibble with one row per *imputation* of
-#'     \code{df_list} and one column per model coefficient; NA for unsuccessful
-#'     model fits
+#'     \code{df_list} with a successful model fit and one column per model
+#'     coefficient (no rows for unsuccessful model fits)
 #' }
 #'
-#' @examples CHANGE THIS
+#' @examples
 #'
 #' my_df <- data.frame(
 #'   id = sample(1:50, size = 500, replace = TRUE),
@@ -47,18 +46,23 @@
 #' )
 #'
 #' ## Basic usage
-#' my_mod_info <- fit_extract_multinom(
+#' my_dflist <- create_bootdata(my_df, cluster_var = "id", nboot = 10)
+#'
+#' my_mod_summary <- summarize_multinom_list(
 #'   formula = y ~ x1 + x2,
-#'   df = my_df,
+#'   df_list = my_dflist,
 #'   ref_level = "A"
 #' )
 #'
 #' ## Handle missingness with multiple imputation using mice
 #' ## Also try a more complicated formula that might fail to converge
-#' my_df_mice <- mice(my_df[1:125,])
-#' my_mod_info_mice <- fit_extract_multinom(
-#'   formula = y ~ rcs(x1, 5) * rcs(x2, 5),
-#'   df = my_df_mice,
+#' my_dflist_mice <- create_bootdata(
+#'   my_df[1:100,], cluster_var = "id", nboot = 10, impute = TRUE
+#' )
+#'
+#' my_mod_info_mice <- summarize_multinom_list(
+#'   formula = y ~ rcs(x1, 4) * rcs(x2, 4),
+#'   df_list = my_dflist_mice,
 #'   ref_level = "A",
 #'   coef_matrix = TRUE
 #' )
