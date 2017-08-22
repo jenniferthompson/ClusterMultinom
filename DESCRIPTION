@@ -16,7 +16,8 @@ License: MIT
 Depends:
     R (>= 3.3.2)
 Imports:
-    purrr
+    purrr,
+    tibble
 Suggests:
     VGAM,
     testthat,
