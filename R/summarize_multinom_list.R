@@ -97,22 +97,22 @@ summarize_multinom_list <- function(formula, df_list, ref_level, ...){
     msgs = purrr::map(results_list, "msgs")
   )
 
-  # ## Add additional columns if requested
-  # if("nfailsucc" %in% names(results_list[[1]])){
-  #   results_df$nfailsucc <- purrr::map(results_list, ~ .[["nfailsucc"]])
-  # }
-  # if("impcoefs" %in% names(results_list[[1]])){
-  #   results_df$impcoefs <- purrr::map(results_list, ~ .[["impcoefs"]])
-  # }
-  # if("modobj" %in% names(results_list[[1]])){
-  #   results_df$modobj <- purrr::map(results_list, ~ .[["modobj"]])
-  # }
-  #
-  # ## Sort applicable columns in desired order
-  # col_order <-
-  #   c("element", "fitsucc", "nfailsucc", "coefs", "impcoefs", "msgs", "modobj")
-  # results_df <-
-  #   results_df[, names(results_df)[order(match(names(results_df), col_order))]]
+  ## Add additional columns if requested
+  if("nfailsucc" %in% names(results_list[[1]])){
+    results_df$nfailsucc <- purrr::map(results_list, "nfailsucc")
+  }
+  if("impcoefs" %in% names(results_list[[1]])){
+    results_df$impcoefs <- purrr::map(results_list, "impcoefs")
+  }
+  if("modobj" %in% names(results_list[[1]])){
+    results_df$modobj <- purrr::map(results_list, "modobj")
+  }
+
+  ## Sort applicable columns in desired order
+  col_order <-
+    c("element", "fitsucc", "nfailsucc", "coefs", "impcoefs", "msgs", "modobj")
+  results_df <-
+    results_df[, names(results_df)[order(match(names(results_df), col_order))]]
 
   ## We want easy access to number of successes/failures, coefficient matrix,
   ## and imputation coefficients if applicable - summarize those
@@ -122,14 +122,14 @@ summarize_multinom_list <- function(formula, df_list, ref_level, ...){
   nfail <- sum(!results_df$fitsucc)
   fitsuccess <- c("Successes" = nsucc, "Failures" = nfail)
 
-  # if("nfailsucc" %in% names(results_df)){
-  #   nimpsucc <- sum(purrr::map_int(results_df$nfailsucc, ~ .["succ"]))
-  #   nimpfail <- sum(purrr::map_int(results_df$nfailsucc, ~ .["fail"]))
-  #   fitsuccess <-
-  #     c(fitsuccess, "ImpSuccesses" = nimpsucc, "ImpFailures" = nimpfail)
-  # }
+  if("nfailsucc" %in% names(results_df)){
+    nimpsucc <- sum(purrr::map_int(results_df$nfailsucc, ~ .["succ"]))
+    nimpfail <- sum(purrr::map_int(results_df$nfailsucc, ~ .["fail"]))
+    fitsuccess <-
+      c(fitsuccess, "ImpSuccesses" = nimpsucc, "ImpFailures" = nimpfail)
+  }
 
-  ## Coefficient point estimates
+  ## -- Coefficient point estimates --------------------------------------------
   ## If there was at least one successful model fit, create a tibble with
   ## [number of successful fits] rows * p columns. Elements of df_list
   ## for which the model did not converge are ignored.
@@ -148,12 +148,18 @@ summarize_multinom_list <- function(formula, df_list, ref_level, ...){
     "coefs" = coefs
   )
 
-  # if("impcoefs" %in% names(results_df)){
-  #   impcoefs <- purrr::map_df(1:length(results_list),
-  #                             ~ data.frame(element = .,
-  #                                          results_list[[.]][["impcoefs"]]))
-  #   return_list <- c(return_list, list("impcoefs" = impcoefs))
-  # }
+  ## If requested and if elements of df_list are mice objects, return a tibble
+  ## of all coefficients from each *imputation*. ie, if there are 5 elements of
+  ## df_list, each imputed 5 times, and all fits were successful, this tibble
+  ## will have 5*5=25 rows and p columns.
+  if("impcoefs" %in% names(results_df)){
+    if(nsucc > 0){
+      impcoefs <- purrr::map_df(results_list, "impcoefs")
+    } else{
+      impcoefs <- NULL
+    }
+    return_list <- c(return_list, list("impcoefs" = impcoefs))
+  }
 
   return(return_list)
 }
