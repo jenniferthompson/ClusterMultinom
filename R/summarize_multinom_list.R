@@ -12,28 +12,32 @@
 #'   \code{\link[VGAM]{multinomial}} for model fitting. \code{\link[mice]{mice}}
 #'   for imputation.
 #'
-#' @return List containing the following elements CHANGE THIS:
+#' @return List containing the following elements:
 #' \itemize{
-#'   \item \code{fitsucc}: logical indicating whether the model was successfully fit,
-#'     with no warnings/errors
-#'   \item\code{coefs}: numeric vector of model coefficients (NULL if
-#'     \code{fitsucc} = FALSE)
-#'    \item\code{msgs}: character vector of warnings/error messages (NULL if
-#'     \code{fitsucc} = TRUE)
-#'    \item\code{modobj}: full model object of class \code{VGAM::vglm()}. Only
-#'     returned if requested (\code{coef_only} = FALSE).
+#'   \item \code{allresults}: \code{\link{[tibble]tibble}} containing one row
+#'     per element of \code{df_list}, with the following information for each
+#'     included as variables or [list columns](https://www.rstudio.com/resources/videos/using-list-cols-in-your-dataframe/):
+#'     \itemize{
+#'       \item \code{fitsucc}: logical; indicates whether model was successfully
+#'         fit to that data object
+#'       \item \code{coefs}: tibble with one row, and one column per coefficient
+#'       \item \code{impcoefs}, if requested: tibble with coefficient estimates
+#'         from each imputation
+#'       \item \code{msgs}: list of character strings; errors/warning messages
+#'         from unsuccessful fits
+#'       \item \code{modobj}, if requested: full model object
+#'     }
+#'   \item\code{fitsucc}: numeric vector including number of model fit Successes,
+#'     Failures, and (if applicable) Imputation Successes/Failures
+#'   \item\code{coefs}: tibble with one row per element of \code{df_list} and one
+#'     column per model coefficient (plus element indicator); coefficients = NA
+#'     for unsuccessful model fits
+#'   \item\code{impcoefs}, if requested: tibble with one row per *imputation* of
+#'     \code{df_list} and one column per model coefficient; NA for unsuccessful
+#'     model fits
 #' }
 #'
-#' If \code{df} is a \code{mice::mids} object, the following elements are also
-#'   returned:
-#' \itemize{
-#'   \item \code{nfailsucc}: numeric vector; number of successful and failed model
-#'   fits among imputations
-#'   \item \code{impcoefs} (if \code{coef_matrix = TRUE}): MxP matrix of
-#'     coefficients from each individual imputation
-#' }
-#'
-#' @examples
+#' @examples CHANGE THIS
 #'
 #' my_df <- data.frame(
 #'   id = sample(1:50, size = 500, replace = TRUE),
@@ -88,27 +92,27 @@ summarize_multinom_list <- function(formula, df_list, ref_level, ...){
 
   results_df <- tibble(
     element = 1:length(df_list),
-    fitsucc = purrr::map_lgl(results_list, ~ .[["fitsucc"]]),
-    coefs = purrr::map(results_list, ~ .[["coefs"]]),
-    msgs = purrr::map(results_list, ~ .[["msgs"]])
+    fitsucc = purrr::map_lgl(results_list, "fitsucc"),
+    coefs = purrr::map(results_list, "coefs"),
+    msgs = purrr::map(results_list, "msgs")
   )
 
-  ## Add additional columns if requested
-  if("nfailsucc" %in% names(results_list[[1]])){
-    results_df$nfailsucc <- purrr::map(results_list, ~ .[["nfailsucc"]])
-  }
-  if("impcoefs" %in% names(results_list[[1]])){
-    results_df$impcoefs <- purrr::map(results_list, ~ .[["impcoefs"]])
-  }
-  if("modobj" %in% names(results_list[[1]])){
-    results_df$modobj <- purrr::map(results_list, ~ .[["modobj"]])
-  }
-
-  ## Sort applicable columns in desired order
-  col_order <-
-    c("element", "fitsucc", "nfailsucc", "coefs", "impcoefs", "msgs", "modobj")
-  results_df <-
-    results_df[, names(results_df)[order(match(names(results_df), col_order))]]
+  # ## Add additional columns if requested
+  # if("nfailsucc" %in% names(results_list[[1]])){
+  #   results_df$nfailsucc <- purrr::map(results_list, ~ .[["nfailsucc"]])
+  # }
+  # if("impcoefs" %in% names(results_list[[1]])){
+  #   results_df$impcoefs <- purrr::map(results_list, ~ .[["impcoefs"]])
+  # }
+  # if("modobj" %in% names(results_list[[1]])){
+  #   results_df$modobj <- purrr::map(results_list, ~ .[["modobj"]])
+  # }
+  #
+  # ## Sort applicable columns in desired order
+  # col_order <-
+  #   c("element", "fitsucc", "nfailsucc", "coefs", "impcoefs", "msgs", "modobj")
+  # results_df <-
+  #   results_df[, names(results_df)[order(match(names(results_df), col_order))]]
 
   ## We want easy access to number of successes/failures, coefficient matrix,
   ## and imputation coefficients if applicable - summarize those
@@ -118,17 +122,25 @@ summarize_multinom_list <- function(formula, df_list, ref_level, ...){
   nfail <- sum(!results_df$fitsucc)
   fitsuccess <- c("Successes" = nsucc, "Failures" = nfail)
 
-  if("nfailsucc" %in% names(results_df)){
-    nimpsucc <- sum(purrr::map_int(results_df$nfailsucc, ~ .["succ"]))
-    nimpfail <- sum(purrr::map_int(results_df$nfailsucc, ~ .["fail"]))
-    fitsuccess <-
-      c(fitsuccess, "ImpSuccesses" = nimpsucc, "ImpFailures" = nimpfail)
-  }
+  # if("nfailsucc" %in% names(results_df)){
+  #   nimpsucc <- sum(purrr::map_int(results_df$nfailsucc, ~ .["succ"]))
+  #   nimpfail <- sum(purrr::map_int(results_df$nfailsucc, ~ .["fail"]))
+  #   fitsuccess <-
+  #     c(fitsuccess, "ImpSuccesses" = nimpsucc, "ImpFailures" = nimpfail)
+  # }
 
   ## Coefficient point estimates
-  coefs <- purrr::map_df(1:length(results_list),
-                         ~ data.frame(element = .,
-                                      results_list[[.]][["coefs"]]))
+  ## If there was at least one successful model fit, create a tibble with
+  ## [number of successful fits] rows * p columns. Elements of df_list
+  ## for which the model did not converge are ignored.
+  ## ie: If 3 out of 5 elements of df_list converged, coefs will be a tbl_df
+  ## with 3 rows * p columns.
+  ## If no elements of df_list were fit successfully, return NULL.
+  if(nsucc > 0){
+    coefs <- purrr::map_df(results_list, "coefs")
+  } else{
+    coefs <- NULL
+  }
 
   return_list <- list(
     "allresults" = results_df,
@@ -136,12 +148,12 @@ summarize_multinom_list <- function(formula, df_list, ref_level, ...){
     "coefs" = coefs
   )
 
-  if("impcoefs" %in% names(results_df)){
-    impcoefs <- purrr::map_df(1:length(results_list),
-                              ~ data.frame(element = .,
-                                           results_list[[.]][["impcoefs"]]))
-    return_list <- c(return_list, list("impcoefs" = impcoefs))
-  }
+  # if("impcoefs" %in% names(results_df)){
+  #   impcoefs <- purrr::map_df(1:length(results_list),
+  #                             ~ data.frame(element = .,
+  #                                          results_list[[.]][["impcoefs"]]))
+  #   return_list <- c(return_list, list("impcoefs" = impcoefs))
+  # }
 
   return(return_list)
 }
