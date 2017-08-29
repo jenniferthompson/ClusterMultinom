@@ -4,7 +4,25 @@
 \alias{summarize_multinom_list}
 \title{Fit multinomial model and extract summary info on a list of data objects}
 \usage{
-summarize_multinom_list(formula, df_list, ref_level, ...)
+summarize_multinom_list(formula, df_list, ref_level, testdf = NULL, ...)
+}
+\arguments{
+\item{formula}{\code{formula}; see \code{\link[stats]{formula}} for more
+details.}
+
+\item{df_list}{\code{list} of either \code{data.frame} or \code{mice::mids}
+objects on which to run model.}
+
+\item{ref_level}{numeric (representing factor level) or character; level of
+outcome variable to use as reference.}
+
+\item{testdf}{\code{data.frame} or \code{mice::mids} object to "test" the
+model. If the model does not converge successfully with this data, the
+function will stop. (Example: If \code{df_list} is a list of bootstrapped
+data frames, \code{testdf} could be the data frame from which the
+bootstraps come.)}
+
+\item{...}{Additional arguments to pass to \code{fit_extract_multinom()}.}
 }
 \value{
 List containing the following elements:
@@ -22,13 +40,16 @@ List containing the following elements:
         from unsuccessful fits
       \item \code{modobj}, if requested: full model object
     }
-  \item\code{fitsucc}: numeric vector including number of model fit Successes,
+  \item \code{fitsucc}: numeric vector including number of model fit Successes,
     Failures, and (if applicable) Imputation Successes/Failures
-  \item\code{coefs}: tibble with one row per element of \code{df_list} and one
+  \item \code{coefs}: tibble with one row per element of \code{df_list} and one
     column per model coefficient (no rows for unsuccessful model fits)
-  \item\code{impcoefs}, if requested: tibble with one row per *imputation* of
+  \item \code{impcoefs}, if requested: tibble with one row per *imputation* of
     \code{df_list} with a successful model fit and one column per model
     coefficient (no rows for unsuccessful model fits)
+  \item \code{testmod}, if a starting data object is supplied: full model fit
+    on starting data frame (eg, original data frame from which \code{df_list}
+    is bootstrapped)
 }
 }
 \description{
@@ -53,6 +74,18 @@ my_mod_summary <- summarize_multinom_list(
   formula = y ~ x1 + x2,
   df_list = my_dflist,
   ref_level = "A"
+)
+
+## Supply original data frame as testdf; see what happens when model is too
+## complex
+my_df_small <- my_df[1:100,]
+my_dflist_small <- create_bootdata(my_df_small, cluster_var = "id", nboot = 10)
+
+my_mod_summary <- summarize_multinom_list(
+  formula = y ~ rms::rcs(x1, 4) * rms::rcs(x2, 4),
+  df_list = my_dflist_small,
+  ref_level = "A",
+  testdf = my_df_small
 )
 
 ## Handle missingness with multiple imputation using mice
