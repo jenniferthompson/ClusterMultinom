@@ -5,9 +5,11 @@
 \alias{summarize_multinom_list}
 \title{Fit multinomial model and extract summary info on a list of data objects}
 \usage{
-summarize_multinom_list(formula, df_list, ref_level, testdf = NULL, ...)
+summarize_multinom_list(formula, df_list, ref_level, testdf = NULL,
+  nsuccfits = NULL, ...)
 
-summarise_multinom_list(formula, df_list, ref_level, testdf = NULL, ...)
+summarise_multinom_list(formula, df_list, ref_level, testdf = NULL,
+  nsuccfits = NULL, ...)
 }
 \arguments{
 \item{formula}{\code{formula}; see \code{\link[stats]{formula}} for more
@@ -19,11 +21,18 @@ objects on which to run model.}
 \item{ref_level}{numeric (representing factor level) or character; level of
 outcome variable to use as reference.}
 
-\item{testdf}{\code{data.frame} or \code{mice::mids} object to "test" the
-model. If the model does not converge successfully with this data, the
-function will stop. (Example: If \code{df_list} is a list of bootstrapped
-data frames, \code{testdf} could be the data frame from which the
-bootstraps come.)}
+\item{testdf}{*(optional)* \code{data.frame} or \code{mice::mids} object to
+"test" the model. If the model does not converge successfully with this
+data, the function will stop. (Example: If \code{df_list} is a list of
+bootstrapped data frames, \code{testdf} could be the data frame from which
+the bootstraps come.)}
+
+\item{nsuccfits}{*(optional)* \code{numeric}; number of successful fits
+requested. If specified, and more than \code{nsuccfits} successful model
+fits result from \code{df_list}, only the first \code{nsuccfits} will be
+returned in the final function information. If specified and fewer than
+\code{nsuccfits} are available, all information will be returned and a
+warning message will display.}
 
 \item{...}{Additional arguments to pass to \code{fit_extract_multinom()}.}
 }

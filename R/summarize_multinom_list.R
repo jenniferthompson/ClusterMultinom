@@ -11,11 +11,17 @@
 #'   objects on which to run model.
 #' @param ref_level numeric (representing factor level) or character; level of
 #'   outcome variable to use as reference.
-#' @param testdf \code{data.frame} or \code{mice::mids} object to "test" the
-#'   model. If the model does not converge successfully with this data, the
-#'   function will stop. (Example: If \code{df_list} is a list of bootstrapped
-#'   data frames, \code{testdf} could be the data frame from which the
-#'   bootstraps come.)
+#' @param testdf *(optional)* \code{data.frame} or \code{mice::mids} object to
+#'   "test" the model. If the model does not converge successfully with this
+#'   data, the function will stop. (Example: If \code{df_list} is a list of
+#'   bootstrapped data frames, \code{testdf} could be the data frame from which
+#'   the bootstraps come.)
+#' @param nsuccfits *(optional)* \code{numeric}; number of successful fits
+#'   requested. If specified, and more than \code{nsuccfits} successful model
+#'   fits result from \code{df_list}, only the first \code{nsuccfits} will be
+#'   returned in the final function information. If specified and fewer than
+#'   \code{nsuccfits} are available, all information will be returned and a
+#'   warning message will display.
 #' @param ... Additional arguments to pass to \code{fit_extract_multinom()}.
 #'
 #' @export
@@ -99,6 +105,7 @@ summarize_multinom_list <- function(formula,
                                     df_list,
                                     ref_level,
                                     testdf = NULL,
+                                    nsuccfits = NULL,
                                     ...){
   if(!inherits(formula, "formula")){
     stop("formula must be a formula object.", call. = FALSE)
@@ -155,6 +162,31 @@ summarize_multinom_list <- function(formula,
     msgs = purrr::map(results_list, "msgs")
   )
 
+  ## If number of requested successful fits is specified, restrict everything to
+  ## as many fits as it took to reach that number
+  if(!is.null(nsuccfits)){
+    results_df$succ_sofar <- cumsum(results_df$fitsucc)
+    results_df <-
+      subset(results_df, succ_sofar <= nsuccfits, select = -succ_sofar)
+  }
+
+  ## What is the last element needed to get nsuccfits successful ones?
+  ## (If nsuccfits not specified, keep everything)
+  last_succ <- nrow(results_df)
+  results_list <- results_list[1:last_succ]
+
+  ## Successes/failures (including imputations, if applicable)
+  nsucc <- sum(results_df$fitsucc)
+  nfail <- sum(!results_df$fitsucc)
+  fitsuccess <- c("Successes" = nsucc, "Failures" = nfail)
+
+  if("nfailsucc" %in% names(results_df)){
+    nimpsucc <- sum(purrr::map_int(results_df$nfailsucc, ~ .["succ"]))
+    nimpfail <- sum(purrr::map_int(results_df$nfailsucc, ~ .["fail"]))
+    fitsuccess <-
+      c(fitsuccess, "ImpSuccesses" = nimpsucc, "ImpFailures" = nimpfail)
+  }
+
   ## Add additional columns if requested
   if("nfailsucc" %in% names(results_list[[1]])){
     results_df$nfailsucc <- purrr::map(results_list, "nfailsucc")
@@ -174,18 +206,6 @@ summarize_multinom_list <- function(formula,
 
   ## We want easy access to number of successes/failures, coefficient matrix,
   ## and imputation coefficients if applicable - summarize those
-
-  ## Successes/failures (including imputations, if applicable)
-  nsucc <- sum(results_df$fitsucc)
-  nfail <- sum(!results_df$fitsucc)
-  fitsuccess <- c("Successes" = nsucc, "Failures" = nfail)
-
-  if("nfailsucc" %in% names(results_df)){
-    nimpsucc <- sum(purrr::map_int(results_df$nfailsucc, ~ .["succ"]))
-    nimpfail <- sum(purrr::map_int(results_df$nfailsucc, ~ .["fail"]))
-    fitsuccess <-
-      c(fitsuccess, "ImpSuccesses" = nimpsucc, "ImpFailures" = nimpfail)
-  }
 
   ## -- Coefficient point estimates --------------------------------------------
   ## If there was at least one successful model fit, create a tibble with
