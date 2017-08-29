@@ -39,6 +39,16 @@ test_that("Outputs match expectations (complete case)", {
     info = "Not all elements of testobj are data.frames."
   )
 
+  ## Each element of testobj is different
+  expect_true(
+    purrr::map_lgl(
+      testobj[2:length(testobj)],
+      ~ is.character(all.equal(target = testobj[[1]], current = .))
+    ) %>%
+      all(),
+    info = "Some element(s) of testobj are the same."
+  )
+
   ## If seed specified, make sure list is same every time
   expect_true(
     all.equal(testobj, testobj2),
@@ -93,6 +103,16 @@ test_that("Outputs match expectations (mice)", {
     expect_true(
       all(purrr::map_lgl(testobj, is.mids)),
       info = "Not all elements of testobj are mids objects."
+    )
+
+    ## Each element of testobj is different
+    expect_true(
+      purrr::map_lgl(
+        testobj[2:length(testobj)],
+        ~ is.character(all.equal(target = testobj[[1]], current = .))
+      ) %>%
+        all(),
+      info = "Some element(s) of testobj are the same."
     )
 
     ## If seed specified, make sure list is same every time
