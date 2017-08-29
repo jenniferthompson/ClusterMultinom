@@ -45,12 +45,13 @@ our_mod <- vglm(
   family = multinomial(refLevel = "Africa")
 )
 
-## Print model summary
-summary(our_mod)
+# ## Print model summary (commented out for length)
+# summary(our_mod)
 
 ```
 
-We get three sets of coefficients; each one describes the log odds of a data point being from Europe, Asia or the Americas vs Africa.
+If you run the code above, you'll see we get three sets of coefficients; each
+set describes the log odds of a data point being from Europe, Asia or the Americas vs Africa.
 
 
 ## Accounting for Clustering
@@ -62,9 +63,12 @@ Here, we'll use the **bootstrap** to account for this clustering. A basic outlin
 - Sample our clusters with replacement
 - Create a dataset with all records from each of our sampled clusters
 - Fit our multinomial model on this dataset and save the coefficients
-- Repeat this process B times
 
-We'll use the coefficients from all B models to get our point estimates and variance-covariance estimates that we'll use in estimating our model results.
+We'll repeat these steps B times, then use the coefficients from all B models to get overall coefficient point estimates and variance-covariance. We'll use those to calculate meaningful results from our model: odds ratios, predicted
+probabilities (plus confidence limits for both), and hypothesis tests.
+
+(In our examples, we'll use a small number of bootstrap samples to save
+computation time; in real life, you'll want many more.)
 
 ## Step 1: Create Our Datasets
 
@@ -79,6 +83,8 @@ It returns a **list** of length `nboot`, where each element is a cluster bootstr
 
 ```{r create_gapminder_bootdata}
 library(ClusterMultinom)
+library(purrr)
+library(tibble)
 
 gap_bootdfs <- create_bootdata(
   df = gapminder,
@@ -92,36 +98,77 @@ length(gap_bootdfs)
 
 ## Step 2: Run the Model on Each Dataset
 
-`ClusterMultinom::run_multinom_boot()` takes as required arguments:
+`ClusterMultinom::summarize_multinom_list()` takes as required arguments:
 
 1. A model formula
+1. A list of datasets *(eg, one created by `ClusterMultinom::create_bootdata()`)*
 1. Which level of the outcome to use as a reference
-1. A list of datasets, all with the same column names *(eg, one created by `ClusterMultinom::create_bootdata()`)*
 
 It also takes as optional arguments:
 
-1. The original dataset, of the same format as each element of your list of bootstrapped datasets.
+1. A "test" dataset
 
-    *If not specified, the function uses the first element of the list.*
+    *The function will run the specified model on the test dataset first; if
+    that model fit succeeds, it will proceed with fitting the model to each
+    element of the given list. If the model fails, the function will stop with
+    an error message. In a typical use case, you would use the original dataset
+    (from which all the bootstraps are sampled) as a test dataset.*
     
-1. The number of successful model fits required.
+1. The number of successful model fits required
 
-    Depending on the distribution of the outcome and the complexity of the model, some bootstrap datasets may not produce a model fit that converges. We recommend creating some "extra" datasets in Step 1, and having `run_multinom_boot()` run until you have achieved B successful model fits. (One of the reasons we chose `VGAM::vglm()` to use first was its conservative warnings.)
+    *Depending on the distribution of the outcome and the complexity of the
+    model, some bootstrap datasets may not produce a model fit that converges,
+    so we recommend creating some "extra" datasets in Step 1. If this argument
+    is specified, and there are **more** than `nsuccfits` successful model fits,
+    the results will be restricted to as many elements as it took to get
+    `nsuccfits` successful fits. If this argument is specified and the entire
+    list results in **fewer** than N successful fits, a warning message will be
+    displayed.*
+    
+    *For example, if the goal is to have 1000 successful bootstraps, you might
+    create a list of 1100 data objects in Step 1 and specify `nsuccfits = 1000`
+    in Step 2.*
 
-    *If not specified, the function uses 85% of the length of the list of datasets.*
+In one step, we can run our specified model on each element of the list we
+created in Step 1 and summarize the most relevant information from each model
+fit. We use the original dataset as our "test" - if the model fails on the
+original dataset, we don't want to try it on the bootstraps.
 
 ```{r run_gapminder_models}
+## Fit model with outcome = continent, exposures = [life expectancy, population,
+##   GDP] to each data.frame in our list
+## For demo purposes, we ask for 7 successful model fits
+our_mod_summary <- summarize_multinom_list(
+  continent ~ lifeExp + pop + gdpPercap,
+  df_list = gap_bootdfs,
+  ref_level = "Africa",
+  testdf = gapminder,
+  nsuccfits = 7
+)
 
+```
 
-# continent ~ lifeExp + pop + gdpPercap
+Our output includes the following elements:
 
+1. `testmod`: The full model fit using our "test" data (here, the original
+gapminder dataset)
+1. `allresults`: A [tibble](https://CRAN.R-project.org/package=tibble) which includes a column for each piece of information we saved from each model fit
+    - `fitsucc`: Whether the model was fit without warnings or errors
+    - `coefs`: A 1 \* *p* tibble of coefficient estimates; NULL if the model
+    failed
+    - `msgs`: A character vector of warnings/errors; NULL if the model was fit
+    successfully
+1. `fitsuccess`: A named numeric vector indicating the total number of successful and failed model fits
+1. `coefs`: A tibble with [number of successful model fits] rows \* *p* columns.
+
+```{r print_gapminder_summary}
+our_mod_summary
 
 ```
 
 
 
-
-
+## FROM HERE ONWARDS IT'S NOT READY
 
 Great, now we have correct variance-covariance between all our coefficients! Now we can get the correct results.
 
