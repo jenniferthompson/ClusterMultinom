@@ -5,6 +5,19 @@
 #' objects (\code{data.frame} or \code{\link[mice]{mice}}), then summarizes the
 #' results of each.
 #'
+#' @param formula \code{formula}; see \code{\link[stats]{formula}} for more
+#'   details.
+#' @param df_list \code{list} of either \code{data.frame} or \code{mice::mids}
+#'   objects on which to run model.
+#' @param ref_level numeric (representing factor level) or character; level of
+#'   outcome variable to use as reference.
+#' @param testdf \code{data.frame} or \code{mice::mids} object to "test" the
+#'   model. If the model does not converge successfully with this data, the
+#'   function will stop. (Example: If \code{df_list} is a list of bootstrapped
+#'   data frames, \code{testdf} could be the data frame from which the
+#'   bootstraps come.)
+#' @param ... Additional arguments to pass to \code{fit_extract_multinom()}.
+#'
 #' @export
 #'
 #' @seealso \code{\link{fit_multinom}}, \code{\link{extract_multinom_info}},
@@ -27,13 +40,16 @@
 #'         from unsuccessful fits
 #'       \item \code{modobj}, if requested: full model object
 #'     }
-#'   \item\code{fitsucc}: numeric vector including number of model fit Successes,
+#'   \item \code{fitsucc}: numeric vector including number of model fit Successes,
 #'     Failures, and (if applicable) Imputation Successes/Failures
-#'   \item\code{coefs}: tibble with one row per element of \code{df_list} and one
+#'   \item \code{coefs}: tibble with one row per element of \code{df_list} and one
 #'     column per model coefficient (no rows for unsuccessful model fits)
-#'   \item\code{impcoefs}, if requested: tibble with one row per *imputation* of
+#'   \item \code{impcoefs}, if requested: tibble with one row per *imputation* of
 #'     \code{df_list} with a successful model fit and one column per model
 #'     coefficient (no rows for unsuccessful model fits)
+#'   \item \code{testmod}, if a starting data object is supplied: full model fit
+#'     on starting data frame (eg, original data frame from which \code{df_list}
+#'     is bootstrapped)
 #' }
 #'
 #' @examples
@@ -67,7 +83,11 @@
 #'   coef_matrix = TRUE
 #' )
 #'
-summarize_multinom_list <- function(formula, df_list, ref_level, ...){
+summarize_multinom_list <- function(formula,
+                                    df_list,
+                                    ref_level,
+                                    testdf = NULL,
+                                    ...){
   if(!inherits(formula, "formula")){
     stop("formula must be a formula object.", call. = FALSE)
   }
