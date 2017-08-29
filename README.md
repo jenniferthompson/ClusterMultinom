@@ -18,24 +18,33 @@ The functions included mirror the following steps:
 
 1.  `create_bootdata()`: Create `B` datasets.
     -   Optional: Multiply impute each dataset `M` times.
-    -   **NOTE: FUNCTIONALITY CURRENTLY ENDS HERE**
-2.  Fit the same model to each bootstrapped dataset (or set of imputations), saving errors/warnings of failed model fits and saving coefficients of successful model fits.
-3.  Create a vector of point estimates, and a corresponding variance-covariance matrix, for all model coefficients.
-4.  Hypothesis testing for individual coefficients or for groups of coefficients.
-5.  Calculate odds ratios and confidence limits for a coefficient.
-6.  Calculate predicted probabilities and confidence limits for each outcome level, given a matrix of **X** values.
+2.  `summarize_multinom_list()`: Fit the same model to each bootstrapped dataset (or set of imputations), saving relevant information (especially coefficient estimates).
+
+\*\* NOTE: FUNCTIONALITY CURRENTLY ENDS HERE \*\*
+
+1.  Hypothesis testing for individual coefficients or for groups of coefficients.
+2.  Calculate odds ratios and confidence limits for a coefficient.
+3.  Calculate predicted probabilities and confidence limits for each outcome level, given a matrix of **X** values.
 
 The functions are written and exported so that the user can access each step of the process independently if needed; however, wrappers are also provided to perform common tasks which fall completely within the context of the package.
 
 Dependencies
 ------------
 
-Currently, `purrr` is **Imported** and all other package dependencies are **Suggested**. Those suggested packages include, in order of importance:
+Currently, `purrr` and `tibble` are **Imported** and all other package dependencies are **Suggested**. Those suggested packages include, in order of importance:
 
 1.  [`VGAM`](https://cran.r-project.org/package=VGAM): We chose `VGAM::vglm()` for our multinomial logistic regression fits because it produces the most conservative warning messages of the options we tried, which are important when fitting a potentially unstable model to many bootstrapped datasets.
-2.  [`mice`](https://cran.r-project.org/package=mice): `mice` is a popular package for multiple imputation, providing plenty of opportunity for customization and modeling.
+2.  [`mice`](https://cran.r-project.org/package=mice): `mice` is a popular, flexible package for multiple imputation.
 3.  [`gapminder`](https://cran.r-project.org/package=gapminder): Required only to run examples.
 4.  [`testthat`](https://cran.r-project.org/package=testthat): Required only for testing.
+5.  [`rms`](https://cran.r-project.org/package=rms): Required only for testing, but useful for fitting spline terms with `rms::rcs()`.
+
+Contributors
+------------
+
+This is joint work with [Rameela Chandrasekhar](http://biostat.mc.vanderbilt.edu/wiki/Main/RameelaChandrasekhar).
+
+We are grateful to [Cole Beck](http://biostat.mc.vanderbilt.edu/wiki/Main/ColeBeck) for his technical guidance and excellent debugging.
 
 Future Directions/Collaboration Opportunities
 ---------------------------------------------
