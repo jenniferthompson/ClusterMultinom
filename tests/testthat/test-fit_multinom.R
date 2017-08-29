@@ -7,7 +7,7 @@ test_that("fit_multinom, complete case", {
 
   ## Complex model fit on small subset of data - should break
   complex_mod <- fit_multinom(
-    formula = y ~ rcs(x1, 5) * rcs(x2, 5),
+    formula = y ~ rms::rcs(x1, 5) * rms::rcs(x2, 5),
     df = my_df[1:100,],
     ref_level = "A"
   )
