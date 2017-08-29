@@ -70,6 +70,18 @@
 #'   ref_level = "A"
 #' )
 #'
+#' ## Supply original data frame as testdf; see what happens when model is too
+#' ## complex
+#' my_df_small <- my_df[1:100,]
+#' my_dflist_small <- create_bootdata(my_df_small, cluster_var = "id", nboot = 10)
+#'
+#' my_mod_summary <- summarize_multinom_list(
+#'   formula = y ~ rms::rcs(x1, 4) * rms::rcs(x2, 4),
+#'   df_list = my_dflist_small,
+#'   ref_level = "A",
+#'   testdf = my_df_small
+#' )
+#'
 #' ## Handle missingness with multiple imputation using mice
 #' ## Also try a more complicated formula that might fail to converge
 #' my_dflist_mice <- create_bootdata(
@@ -90,6 +102,28 @@ summarize_multinom_list <- function(formula,
                                     ...){
   if(!inherits(formula, "formula")){
     stop("formula must be a formula object.", call. = FALSE)
+  }
+
+  ## If a testdf is supplied, run the model on it; if it fails to converge
+  ## without warnings/errors, stop the entire function. Otherwise, save and
+  ## return model object.
+  if(!is.null(testdf)){
+    testmod <-
+      eval(
+        substitute(
+          with(testdf, try_vglm(formula, family = multinomial(refLevel = ref_level)))
+        )
+      )
+    if(inherits(testmod, "try-error")){
+      stop(
+        "Specified model does not converge on test data. Suggestions to make model more stable include a less complex model and combining sparse outcome levels.",
+        call. = FALSE
+      )
+    } else{
+      return_list <- list("testmod" = testmod)
+    }
+  } else{
+    return_list <- NULL
   }
 
   ## Fit model to each data object and extract info
@@ -166,10 +200,13 @@ summarize_multinom_list <- function(formula,
     coefs <- NULL
   }
 
-  return_list <- list(
-    "allresults" = results_df,
-    "fitsuccess" = fitsuccess,
-    "coefs" = coefs
+  return_list <- c(
+    return_list,
+    list(
+      "allresults" = results_df,
+      "fitsuccess" = fitsuccess,
+      "coefs" = coefs
+    )
   )
 
   ## If requested and if elements of df_list are mice objects, return a tibble
