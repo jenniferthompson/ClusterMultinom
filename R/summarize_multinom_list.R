@@ -111,6 +111,16 @@ summarize_multinom_list <- function(formula,
     stop("formula must be a formula object.", call. = FALSE)
   }
 
+  ## If specified, nsuccfits should be less than length(df_list)
+  if(!is.null(nsuccfits)){
+    if(nsuccfits > length(df_list)){
+      stop(
+        "There are not enough elements in df_list to produce nsuccfits successful fits",
+        call. = FALSE
+      )
+    }
+  }
+
   ## If a testdf is supplied, run the model on it; if it fails to converge
   ## without warnings/errors, stop the entire function. Otherwise, save and
   ## return model object.
@@ -240,6 +250,18 @@ summarize_multinom_list <- function(formula,
       impcoefs <- NULL
     }
     return_list <- c(return_list, list("impcoefs" = impcoefs))
+  }
+
+  if(!is.null(nsuccfits)){
+    if(nsuccfits > nsucc){
+      warning(
+        sprintf(
+          "*Note* that the number of successful model fits is lower than the %s specified",
+          nsuccfits
+        ),
+        call. = FALSE
+      )
+    }
   }
 
   return(return_list)
