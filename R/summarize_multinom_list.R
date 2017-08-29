@@ -224,3 +224,7 @@ summarize_multinom_list <- function(formula,
 
   return(return_list)
 }
+
+#' @rdname summarize_multinom_list
+#' @export
+summarise_multinom_list <- summarize_multinom_list
