@@ -99,7 +99,7 @@ create_bootdata <- function(df,
 
   ## -- Randomly sample cluster_var with replacement nboot times ---------------
   ## Size = length(unique(df$cluster_var))
-  unique_clusters <- unique(df[ , cluster_var])
+  unique_clusters <- unique(df[[cluster_var]])
 
   ## Get a list of cluster samples given boot_seeds
   cluster_samples <- purrr::map(boot_seeds, sample_clusters, unique_clusters)
