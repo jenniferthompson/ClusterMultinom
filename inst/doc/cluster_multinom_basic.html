@@ -12,7 +12,7 @@
 
 <meta name="author" content="Jennifer Thompson" />
 
-<meta name="date" content="2017-08-29" />
+<meta name="date" content="2017-09-01" />
 
 <title>Multinomial Regression with Clustering Using the Bootstrap</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Multinomial Regression with Clustering Using the Bootstrap</h1>
 <h4 class="author"><em>Jennifer Thompson</em></h4>
-<h4 class="date"><em>2017-08-29</em></h4>
+<h4 class="date"><em>2017-09-01</em></h4>
 
 
 
@@ -87,7 +87,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">head</span>(gapminder)</code></pre></div>
 <pre><code>## # A tibble: 6 x 6
 ##       country continent  year lifeExp      pop gdpPercap
-##        &lt;fctr&gt;     &lt;chr&gt; &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
+##        &lt;fctr&gt;    &lt;fctr&gt; &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
 ## 1 Afghanistan      Asia  1952  28.801  8425333  779.4453
 ## 2 Afghanistan      Asia  1957  30.332  9240934  820.8530
 ## 3 Afghanistan      Asia  1962  31.997 10267083  853.1007
@@ -161,9 +161,11 @@ gap_bootdfs &lt;-<span class="st"> </span><span class="kw">create_bootdata</span
 </ol>
 <p>It also takes as optional arguments:</p>
 <ol style="list-style-type: decimal">
-<li><p>A “test” dataset</p>
+<li><p>A “test” dataset (<code>orgdf</code>)</p>
 <p><em>The function will run the specified model on the test dataset first; if that model fit succeeds, it will proceed with fitting the model to each element of the given list. If the model fails, the function will stop with an error message. In a typical use case, you would use the original dataset (from which all the bootstraps are sampled) as a test dataset.</em></p></li>
-<li><p>The number of successful model fits required</p>
+<li><p>What information to keep from test model fit (<code>orginfo</code>)</p>
+<p><em>If an original dataset is specified, the user might be interested in looking at the entire model object (residuals, etc); in this case, specify <code>orginfo = &quot;modobj&quot;</code>. Often, we are only interested in the coefficients - for example, to compare coefficients from the original dataset to what we get from bootstrapping. Thus, the default is <code>orginfo = &quot;coefs&quot;</code>. Sometimes we’re not interested in keeping any information; we just want to make sure the model runs on the test dataset. In this case, specify <code>orginfo = &quot;nothing&quot;</code>.</em></p></li>
+<li><p>The number of successful model fits required (<code>nsuccfits</code>)</p>
 <p><em>Depending on the distribution of the outcome and the complexity of the model, some bootstrap datasets may not produce a model fit that converges, so we recommend creating some “extra” datasets in Step 1. If this argument is specified, and there are <strong>more</strong> than <code>nsuccfits</code> successful model fits, the results will be restricted to as many elements as it took to get <code>nsuccfits</code> successful fits. If this argument is specified and the entire list results in <strong>fewer</strong> than N successful fits, a warning message will be displayed.</em></p>
 <p><em>For example, if the goal is to have 1000 successful bootstraps, you might create a list of 1100 data objects in Step 1 and specify <code>nsuccfits = 1000</code> in Step 2.</em></p></li>
 </ol>
@@ -175,12 +177,12 @@ our_mod_summary &lt;-<span class="st"> </span><span class="kw">summarize_multino
   continent <span class="op">~</span><span class="st"> </span>lifeExp <span class="op">+</span><span class="st"> </span>pop <span class="op">+</span><span class="st"> </span>gdpPercap,
   <span class="dt">df_list =</span> gap_bootdfs,
   <span class="dt">ref_level =</span> <span class="st">&quot;Africa&quot;</span>,
-  <span class="dt">testdf =</span> gapminder,
+  <span class="dt">orgdf =</span> gapminder,
   <span class="dt">nsuccfits =</span> <span class="dv">7</span>
 )</code></pre></div>
 <p>Our output includes the following elements:</p>
 <ol style="list-style-type: decimal">
-<li><code>testmod</code>: The full model fit using our “test” data (here, the original gapminder dataset)</li>
+<li><code>orgcoefs</code>: Coefficients from the full model fit using our original data (here, the original gapminder dataset)</li>
 <li><code>allresults</code>: A <a href="https://CRAN.R-project.org/package=tibble">tibble</a> which includes a column for each piece of information we saved from each model fit
 <ul>
 <li><code>fitsucc</code>: Whether the model was fit without warnings or errors</li>
@@ -191,25 +193,13 @@ our_mod_summary &lt;-<span class="st"> </span><span class="kw">summarize_multino
 <li><code>coefs</code>: A tibble with [number of successful model fits] rows * <em>p</em> columns.</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">our_mod_summary</code></pre></div>
-<pre><code>## $testmod
-## 
-## Call:
-## VGAM::vglm(formula = ..1, family = ..2, silent = TRUE)
-## 
-## 
-## Coefficients:
-## (Intercept):1 (Intercept):2 (Intercept):3     lifeExp:1     lifeExp:2 
+<pre><code>## $orgcoefs
+##   intercept_1   intercept_2   intercept_3     lifeExp_1     lifeExp_2 
 ## -8.712548e+00 -4.788247e+00 -1.512786e+01  1.302274e-01  6.257702e-02 
-##     lifeExp:3         pop:1         pop:2         pop:3   gdpPercap:1 
+##     lifeExp_3         pop_1         pop_2         pop_3   gdpPercap_1 
 ##  2.210834e-01  1.978343e-08  2.389424e-08  1.155799e-08  7.464378e-05 
-##   gdpPercap:2   gdpPercap:3 
+##   gdpPercap_2   gdpPercap_3 
 ##  1.418151e-04  1.246348e-04 
-## 
-## Degrees of Freedom: 5112 Total; 5100 Residual
-## Residual deviance: 3349.918 
-## Log-likelihood: -1674.959 
-## 
-## This is a multinomial logit model with 4 levels
 ## 
 ## $allresults
 ## # A tibble: 7 x 4

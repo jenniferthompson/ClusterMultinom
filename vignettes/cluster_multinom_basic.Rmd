@@ -106,7 +106,7 @@ length(gap_bootdfs)
 
 It also takes as optional arguments:
 
-1. A "test" dataset
+1. A "test" dataset (`orgdf`)
 
     *The function will run the specified model on the test dataset first; if
     that model fit succeeds, it will proceed with fitting the model to each
@@ -114,7 +114,18 @@ It also takes as optional arguments:
     an error message. In a typical use case, you would use the original dataset
     (from which all the bootstraps are sampled) as a test dataset.*
     
-1. The number of successful model fits required
+1. What information to keep from test model fit (`orginfo`)
+
+    *If an original dataset is specified, the user might be interested in
+    looking at the entire model object (residuals, etc); in this case, specify
+    `orginfo = "modobj"`. Often, we are only interested in the coefficients -
+    for example, to compare coefficients from the original dataset to what we
+    get from bootstrapping. Thus, the default is `orginfo = "coefs"`. Sometimes
+    we're not interested in keeping any information; we just want to make sure
+    the model runs on the test dataset. In this case, specify `orginfo =
+    "nothing"`.*
+    
+1. The number of successful model fits required (`nsuccfits`)
 
     *Depending on the distribution of the outcome and the complexity of the
     model, some bootstrap datasets may not produce a model fit that converges,
@@ -142,7 +153,7 @@ our_mod_summary <- summarize_multinom_list(
   continent ~ lifeExp + pop + gdpPercap,
   df_list = gap_bootdfs,
   ref_level = "Africa",
-  testdf = gapminder,
+  orgdf = gapminder,
   nsuccfits = 7
 )
 
@@ -150,15 +161,15 @@ our_mod_summary <- summarize_multinom_list(
 
 Our output includes the following elements:
 
-1. `testmod`: The full model fit using our "test" data (here, the original
-gapminder dataset)
+1. `orgcoefs`: Coefficients from the full model fit using our original data
+  (here, the original gapminder dataset)
 1. `allresults`: A [tibble](https://CRAN.R-project.org/package=tibble) which includes a column for each piece of information we saved from each model fit
     - `fitsucc`: Whether the model was fit without warnings or errors
     - `coefs`: A 1 \* *p* tibble of coefficient estimates; NULL if the model
     failed
     - `msgs`: A character vector of warnings/errors; NULL if the model was fit
     successfully
-1. `fitsuccess`: A named numeric vector indicating the total number of successful and failed model fits
+1. `fitsuccess`: A named numeric vector indicating the total number of successful   and failed model fits
 1. `coefs`: A tibble with [number of successful model fits] rows \* *p* columns.
 
 ```{r print_gapminder_summary}

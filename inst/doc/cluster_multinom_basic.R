@@ -44,7 +44,7 @@ our_mod_summary <- summarize_multinom_list(
   continent ~ lifeExp + pop + gdpPercap,
   df_list = gap_bootdfs,
   ref_level = "Africa",
-  testdf = gapminder,
+  orgdf = gapminder,
   nsuccfits = 7
 )
 
