@@ -5,11 +5,11 @@
 \alias{summarize_multinom_list}
 \title{Fit multinomial model and extract summary info on a list of data objects}
 \usage{
-summarize_multinom_list(formula, df_list, ref_level, testdf = NULL,
-  nsuccfits = NULL, ...)
+summarize_multinom_list(formula, df_list, ref_level, orgdf = NULL,
+  orginfo = c("coefs", "nothing", "modobj"), nsuccfits = NULL, ...)
 
-summarise_multinom_list(formula, df_list, ref_level, testdf = NULL,
-  nsuccfits = NULL, ...)
+summarise_multinom_list(formula, df_list, ref_level, orgdf = NULL,
+  orginfo = c("coefs", "nothing", "modobj"), nsuccfits = NULL, ...)
 }
 \arguments{
 \item{formula}{\code{formula}; see \code{\link[stats]{formula}} for more
@@ -21,11 +21,17 @@ objects on which to run model.}
 \item{ref_level}{numeric (representing factor level) or character; level of
 outcome variable to use as reference.}
 
-\item{testdf}{*(optional)* \code{data.frame} or \code{mice::mids} object to
+\item{orgdf}{*(optional)* \code{data.frame} or \code{mice::mids} object to
 "test" the model. If the model does not converge successfully with this
 data, the function will stop. (Example: If \code{df_list} is a list of
-bootstrapped data frames, \code{testdf} could be the data frame from which
-the bootstraps come.)}
+bootstrapped data frames, \code{orgdf} would likely be the data frame from
+which the bootstraps come.)}
+
+\item{orginfo}{*(optional)*, if \code{orgdf} supplied; one of \code{coefs}
+(default), \code{nothing}, or \code{modobj}. If \code{coefs}, returns only
+a named vector of coefficients. If \code{modobj}, returns entire model fit
+on \code{orgdf}. If \code{nothing}, returns nothing; only uses \code{orgdf}
+to test whether model runs successfully.}
 
 \item{nsuccfits}{*(optional)* \code{numeric}; number of successful fits
 requested. If specified, and more than \code{nsuccfits} successful model
@@ -59,9 +65,13 @@ List containing the following elements:
   \item \code{impcoefs}, if requested: tibble with one row per *imputation* of
     \code{df_list} with a successful model fit and one column per model
     coefficient (no rows for unsuccessful model fits)
-  \item \code{testmod}, if a starting data object is supplied: full model fit
-    on starting data frame (eg, original data frame from which \code{df_list}
-    is bootstrapped)
+  \item \code{orgcoefs}, if \code{orgdf} is supplied and
+    \code{orginfo = "coefs"}: named vector of coefficients from model fit on
+    starting data frame (eg, original data frame from which \code{df_list} is
+    bootstrapped)
+  \item \code{orgmod}, if \code{orgdf} is supplied and
+    \code{orginfo = "modobj"}: full model fit on starting data frame (eg,
+    original data frame from which \code{df_list} is bootstrapped)
 }
 }
 \description{
@@ -85,7 +95,8 @@ my_dflist <- create_bootdata(my_df, cluster_var = "id", nboot = 10)
 my_mod_summary <- summarize_multinom_list(
   formula = y ~ x1 + x2,
   df_list = my_dflist,
-  ref_level = "A"
+  ref_level = "A",
+  orgdf = my_df
 )
 
 ## Supply original data frame as testdf; see what happens when model is too
@@ -97,7 +108,7 @@ my_mod_summary <- summarize_multinom_list(
   formula = y ~ rms::rcs(x1, 4) * rms::rcs(x2, 4),
   df_list = my_dflist_small,
   ref_level = "A",
-  testdf = my_df_small
+  orgdf = my_df_small
 )
 
 ## Handle missingness with multiple imputation using mice

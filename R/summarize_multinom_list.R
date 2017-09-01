@@ -11,11 +11,16 @@
 #'   objects on which to run model.
 #' @param ref_level numeric (representing factor level) or character; level of
 #'   outcome variable to use as reference.
-#' @param testdf *(optional)* \code{data.frame} or \code{mice::mids} object to
+#' @param orgdf *(optional)* \code{data.frame} or \code{mice::mids} object to
 #'   "test" the model. If the model does not converge successfully with this
 #'   data, the function will stop. (Example: If \code{df_list} is a list of
-#'   bootstrapped data frames, \code{testdf} could be the data frame from which
-#'   the bootstraps come.)
+#'   bootstrapped data frames, \code{orgdf} would likely be the data frame from
+#'   which the bootstraps come.)
+#' @param orginfo *(optional)*, if \code{orgdf} supplied; one of \code{coefs}
+#'   (default), \code{nothing}, or \code{modobj}. If \code{coefs}, returns only
+#'   a named vector of coefficients. If \code{modobj}, returns entire model fit
+#'   on \code{orgdf}. If \code{nothing}, returns nothing; only uses \code{orgdf}
+#'   to test whether model runs successfully.
 #' @param nsuccfits *(optional)* \code{numeric}; number of successful fits
 #'   requested. If specified, and more than \code{nsuccfits} successful model
 #'   fits result from \code{df_list}, only the first \code{nsuccfits} will be
@@ -53,9 +58,13 @@
 #'   \item \code{impcoefs}, if requested: tibble with one row per *imputation* of
 #'     \code{df_list} with a successful model fit and one column per model
 #'     coefficient (no rows for unsuccessful model fits)
-#'   \item \code{testmod}, if a starting data object is supplied: full model fit
-#'     on starting data frame (eg, original data frame from which \code{df_list}
-#'     is bootstrapped)
+#'   \item \code{orgcoefs}, if \code{orgdf} is supplied and
+#'     \code{orginfo = "coefs"}: named vector of coefficients from model fit on
+#'     starting data frame (eg, original data frame from which \code{df_list} is
+#'     bootstrapped)
+#'   \item \code{orgmod}, if \code{orgdf} is supplied and
+#'     \code{orginfo = "modobj"}: full model fit on starting data frame (eg,
+#'     original data frame from which \code{df_list} is bootstrapped)
 #' }
 #'
 #' @examples
@@ -73,7 +82,8 @@
 #' my_mod_summary <- summarize_multinom_list(
 #'   formula = y ~ x1 + x2,
 #'   df_list = my_dflist,
-#'   ref_level = "A"
+#'   ref_level = "A",
+#'   orgdf = my_df
 #' )
 #'
 #' ## Supply original data frame as testdf; see what happens when model is too
@@ -85,7 +95,7 @@
 #'   formula = y ~ rms::rcs(x1, 4) * rms::rcs(x2, 4),
 #'   df_list = my_dflist_small,
 #'   ref_level = "A",
-#'   testdf = my_df_small
+#'   orgdf = my_df_small
 #' )
 #'
 #' ## Handle missingness with multiple imputation using mice
@@ -104,7 +114,8 @@
 summarize_multinom_list <- function(formula,
                                     df_list,
                                     ref_level,
-                                    testdf = NULL,
+                                    orgdf = NULL,
+                                    orginfo = c("coefs", "nothing", "modobj"),
                                     nsuccfits = NULL,
                                     ...){
   if(!inherits(formula, "formula")){
@@ -121,26 +132,44 @@ summarize_multinom_list <- function(formula,
     }
   }
 
-  ## If a testdf is supplied, run the model on it; if it fails to converge
-  ## without warnings/errors, stop the entire function. Otherwise, save and
-  ## return model object.
-  if(!is.null(testdf)){
-    testmod <-
+  ## Initialize return_list
+  return_list <- NULL
+
+  ## If orgdf is supplied, run the model on it; if it fails to converge without
+  ## warnings/errors, stop the entire function. Otherwise, save and return
+  ## specified info.
+  if(!is.null(orgdf)){
+    ## If orginfo not specified, set to coefs
+    orginfo <- match.arg(orginfo)
+
+    ## Fit original model to orgdf
+    orgmod <-
       eval(
         substitute(
-          with(testdf, try_vglm(formula, family = multinomial(refLevel = ref_level)))
+          with(orgdf, try_vglm(formula, family = multinomial(refLevel = ref_level)))
         )
       )
-    if(inherits(testmod, "try-error")){
+
+    ## If model fails to converge on orgdf, stop function
+    if(inherits(orgmod, "try-error")){
       stop(
         "Specified model does not converge on test data. Suggestions to make model more stable include a less complex model and combining sparse outcome levels.",
         call. = FALSE
       )
+    ## If model converges, add any info requested
     } else{
-      return_list <- list("testmod" = testmod)
+      ## Coefficients only
+      if(orginfo == "coefs"){
+        if(inherits(orgmod, "vglm")){
+          orgcoefs <- orgmod@coefficients
+          names(orgcoefs) <- reformat_vnames(names(orgcoefs))
+        }
+        return_list <- list("orgcoefs" = orgcoefs)
+      ## Full model object
+      } else if(orginfo == "modobj"){
+        return_list <- list("orgmod" = orgmod)
+      }
     }
-  } else{
-    return_list <- NULL
   }
 
   ## Fit model to each data object and extract info
